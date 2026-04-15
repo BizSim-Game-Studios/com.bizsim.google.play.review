@@ -5,24 +5,27 @@ using NUnit.Framework;
 using UnityEditor.PackageManager;
 using BizSim.Google.Play.Review;
 
-public class PackageVersionDriftTests
+namespace BizSim.Google.Play.Review.Tests
 {
-    [Test]
-    public void PackageVersion_Current_MatchesPackageJson()
+    public class PackageVersionDriftTests
     {
-        var asm = typeof(PackageVersion).Assembly;
-        var pkgInfo = PackageInfo.FindForAssembly(asm);
-        Assert.NotNull(pkgInfo,
-            "PackageInfo.FindForAssembly returned null — is BizSim.Google.Play.Review installed via UPM?");
+        [Test]
+        public void PackageVersion_Current_MatchesPackageJson()
+        {
+            var asm = typeof(PackageVersion).Assembly;
+            var pkgInfo = PackageInfo.FindForAssembly(asm);
+            Assert.NotNull(pkgInfo,
+                "PackageInfo.FindForAssembly returned null — is BizSim.Google.Play.Review installed via UPM?");
 
-        var pkgJsonPath = Path.Combine(pkgInfo.resolvedPath, "package.json");
-        Assert.IsTrue(File.Exists(pkgJsonPath), $"package.json not found at {pkgJsonPath}");
+            var pkgJsonPath = Path.Combine(pkgInfo.resolvedPath, "package.json");
+            Assert.IsTrue(File.Exists(pkgJsonPath), $"package.json not found at {pkgJsonPath}");
 
-        var pkgJson = File.ReadAllText(pkgJsonPath);
-        var m = Regex.Match(pkgJson, "\"version\"\\s*:\\s*\"([^\"]+)\"");
-        Assert.IsTrue(m.Success, "package.json has no version field");
-        Assert.AreEqual(m.Groups[1].Value, PackageVersion.Current,
-            "PackageVersion.Current drifted from package.json — bump skill missed a file?");
+            var pkgJson = File.ReadAllText(pkgJsonPath);
+            var m = Regex.Match(pkgJson, "\"version\"\\s*:\\s*\"([^\"]+)\"");
+            Assert.IsTrue(m.Success, "package.json has no version field");
+            Assert.AreEqual(m.Groups[1].Value, PackageVersion.Current,
+                "PackageVersion.Current drifted from package.json — bump skill missed a file?");
+        }
     }
 }
 #endif

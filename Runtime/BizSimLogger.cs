@@ -2,6 +2,18 @@ using UnityEngine;
 
 namespace BizSim.Google.Play.Review
 {
+    /// <summary>
+    /// Per-package logger. Reads its config from a <see cref="ReviewSettings"/> asset at first call
+    /// and caches the result. Falls back to compile-time defaults + a one-shot warning if the asset
+    /// is missing.
+    /// </summary>
+    /// <remarks>
+    /// THREAD SAFETY: All public methods are main-thread-only. The underlying <c>Resources.Load</c>
+    /// and <c>ScriptableObject.CreateInstance</c> calls are main-thread-only in Unity, and callers
+    /// (the <see cref="ReviewController"/> and friends) marshal through <c>UnityMainThreadDispatcher</c>
+    /// before invoking logger methods. Calling <c>BizSimLogger.*</c> from a background thread is
+    /// undefined behavior.
+    /// </remarks>
     public static class BizSimLogger
     {
         // Per-package PREFIX — never changes, never read from asset.

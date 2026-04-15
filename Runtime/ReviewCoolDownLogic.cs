@@ -14,6 +14,9 @@ namespace BizSim.Google.Play.Review
 
         public ReviewCoolDownLogic(int minIntervalDays)
         {
+            if (minIntervalDays < 1)
+                throw new ArgumentOutOfRangeException(nameof(minIntervalDays),
+                    minIntervalDays, "minIntervalDays must be >= 1 to avoid an always-open cooldown.");
             _minIntervalDays = minIntervalDays;
         }
 
@@ -63,7 +66,7 @@ namespace BizSim.Google.Play.Review
                 PlayerPrefs.SetString(PREF_KEY, DateTime.UtcNow.Ticks.ToString());
                 PlayerPrefs.Save();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 // Per CROSS-INVARIANTS §12.4 sub-tag policy, BizSimLogger.Prefix is the only tag — no `[ReviewCoolDown]` sub-bracket.
                 BizSimLogger.Warning($"PlayerPrefs.Save failed in ReviewCoolDownLogic.StampNow: {ex.Message}. Cooldown not persisted for this call.");
