@@ -12,7 +12,7 @@ Requests and launches the native in-app review flow with a local cooldown, analy
 ## Features
 
 - **Java-to-C# Bridge** — Play Core `ReviewManager` wrapped in a main-thread-safe singleton
-- **Task-based and event-based APIs** — `RequestReviewFlowAsync()` + synchronous event callbacks
+- **Task-based and event-based APIs** — `RequestReviewAsync()` + event callbacks fired on completion
 - **Local cooldown** — 90-day PlayerPrefs-backed cooldown to respect Google's quota-invisible semantics
 - **Mock provider** — 6 ScriptableObject presets covering success, error, and cooldown scenarios for editor + non-Android builds
 - **Analytics adapter** — Optional `IReviewAnalyticsAdapter` with a Firebase implementation guarded by `BIZSIM_FIREBASE`
@@ -59,7 +59,7 @@ After the package imports, EDM4U is automatically resolved by UPM — no manual 
 
 2. Request the review flow:
    ```csharp
-   var result = await ReviewController.Instance.RequestReviewFlowAsync();
+   var result = await ReviewController.Instance.RequestReviewAsync(CancellationToken.None, 30f);
    if (result.FlowCompleted)
    {
        // Google guarantees nothing about whether the dialog was shown.
