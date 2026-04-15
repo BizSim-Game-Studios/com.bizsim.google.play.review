@@ -1,0 +1,16 @@
+{
+  "name": "BizSim.Google.Play.Review.EditorTests",
+  "rootNamespace": "BizSim.Google.Play.Review.EditorTests",
+  "references": [
+    "BizSim.Google.Play.Review",
+    "BizSim.Google.Play.Review.Editor",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}
