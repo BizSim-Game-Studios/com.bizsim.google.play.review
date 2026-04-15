@@ -1,0 +1,17 @@
+{
+  "name": "BizSim.Google.Play.Review.Editor",
+  "rootNamespace": "BizSim.Google.Play.Review.Editor",
+  "references": [
+    "BizSim.Google.Play.Review",
+    "BizSim.Google.Play.Editor.Core"
+  ],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
