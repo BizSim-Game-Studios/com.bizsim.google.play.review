@@ -1,0 +1,23 @@
+{
+  "name": "com.bizsim.google.play.review",
+  "displayName": "BizSim Google Play In-App Review Bridge",
+  "description": "Unity bridge for the Google Play In-App Review API (v2.0.2). Provides Java-to-C# integration for requesting and launching the native review flow with a local cooldown and mock provider.",
+  "version": "1.0.0",
+  "unity": "6000.0",
+  "changelogUrl": "https://github.com/BizSim-Game-Studios/com.bizsim.google.play.review/blob/main/CHANGELOG.md",
+  "documentationUrl": "https://github.com/BizSim-Game-Studios/com.bizsim.google.play.review/blob/main/README.md",
+  "author": { "name": "BizSim Game Studios", "url": "https://github.com/BizSim-Game-Studios" },
+  "contributors": [ { "name": "Aşkın Ceyhan", "url": "https://github.com/AskinCeyhan" } ],
+  "company": "BizSim Game Studios",
+  "homepage": "https://www.bizsim.com",
+  "license": "MIT",
+  "keywords": ["google-play", "in-app-review", "review", "rating", "android"],
+  "repository": { "type": "git", "url": "https://github.com/BizSim-Game-Studios/com.bizsim.google.play.review.git" },
+  "samples": [
+    { "displayName": "Basic Integration", "description": "Minimal review request with local cooldown + callback and async examples.", "path": "Samples~/BasicIntegration" },
+    { "displayName": "Mock Config Presets", "description": "Pre-configured mock scenarios.", "path": "Samples~/MockPresets" }
+  ],
+  "dependencies": {
+    "com.google.external-dependency-manager": "1.2.187"
+  }
+}
