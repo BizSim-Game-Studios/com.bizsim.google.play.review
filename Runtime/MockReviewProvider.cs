@@ -85,7 +85,10 @@ namespace BizSim.Google.Play.Review
                 throw new InvalidOperationException(error.Message);
             }
 
-            _coolDown.StampNow();
+            // NOTE (audit round-3 Phase 3 nit-2): Controller is the sole cooldown stamper.
+            // `ReviewController.HandleCompleted` calls _coolDown.StampNow() on success. Providers
+            // MUST NOT stamp internally — prevents double-stamp on shared ReviewCoolDownLogic
+            // instance. Same rule will apply to AndroidReviewProvider in Phase 4.
 
             var result = new ReviewResult(
                 flowCompleted: true,
