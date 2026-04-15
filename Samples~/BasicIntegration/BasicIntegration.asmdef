@@ -1,0 +1,7 @@
+{
+  "name": "BizSim.Google.Play.Review.Samples.BasicIntegration",
+  "rootNamespace": "BizSim.Google.Play.Review.Samples.BasicIntegration",
+  "references": ["BizSim.Google.Play.Review"],
+  "includePlatforms": ["Android", "Editor"],
+  "autoReferenced": false
+}
