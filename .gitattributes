@@ -8,3 +8,15 @@
 *.xml text eol=lf
 *.png binary
 *.jpg binary
+*.unity binary
+*.asset binary
+*.prefab binary
+*.mat binary
+*.anim binary
+*.controller binary
+*.fbx binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.aar binary
+*.jar binary
