@@ -90,7 +90,17 @@ namespace BizSim.Google.Play.Review
             _inFlight = true;
             try { _analytics?.OnReviewRequested(); }
             catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on OnReviewRequested: {ex.Message}"); }
-            _provider.RequestReview();
+            try
+            {
+                _provider.RequestReview();
+            }
+            catch
+            {
+                // Sync throw: provider rejected the call before starting. Release the in-flight slot
+                // so the controller isn't stuck. The exception propagates to the caller.
+                _inFlight = false;
+                throw;
+            }
         }
 
         // Sentinel-value pattern per CROSS-INVARIANTS §12.2.1: a non-positive timeoutSeconds
@@ -104,7 +114,17 @@ namespace BizSim.Google.Play.Review
                 timeoutSeconds = _settings != null ? _settings.DefaultTimeoutSeconds : 30f;
             try { _analytics?.OnReviewRequested(); }
             catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on OnReviewRequested: {ex.Message}"); }
-            return _provider.RequestReviewAsync(ct, timeoutSeconds);
+            try
+            {
+                return _provider.RequestReviewAsync(ct, timeoutSeconds);
+            }
+            catch
+            {
+                // Sync throw (rare — most failures should come through the Task, not synchronously).
+                // Release the in-flight slot so the controller isn't stuck.
+                _inFlight = false;
+                throw;
+            }
         }
 
         // Explicit interface implementation to satisfy IReviewProvider's positive-timeout contract.
