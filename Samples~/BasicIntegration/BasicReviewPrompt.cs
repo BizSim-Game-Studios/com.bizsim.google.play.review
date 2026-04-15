@@ -9,6 +9,15 @@ public class BasicReviewPrompt : MonoBehaviour
         ReviewController.Instance.OnError += OnError;
     }
 
+    private void OnDestroy()
+    {
+        // Unsubscribe to avoid a dangling delegate on ReviewController (which persists across
+        // scene loads via DontDestroyOnLoad). Sample code read as canonical by consumers.
+        if (ReviewController.Instance == null) return;
+        ReviewController.Instance.OnReviewFlowCompleted -= OnCompleted;
+        ReviewController.Instance.OnError -= OnError;
+    }
+
     public void OnRequestReviewButtonClicked()
     {
         if (!ReviewController.Instance.CanRequestReview())
