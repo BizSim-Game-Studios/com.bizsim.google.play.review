@@ -1,0 +1,29 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace "com.bizsim.google.play.review"
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 36
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.android.play:review:2.0.2'
+    // FakeReviewManager ships inside the main :review artifact (in the .testing sub-package),
+    // so no separate test dependency is required.
+}
