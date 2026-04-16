@@ -1,0 +1,7 @@
+{
+  "name": "BizSim.Google.Play.Review.Samples.TriggerPresets",
+  "rootNamespace": "BizSim.Google.Play.Review.Samples.TriggerPresets",
+  "references": ["BizSim.Google.Play.Review"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}

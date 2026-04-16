@@ -17,7 +17,8 @@
     { "displayName": "Basic Integration", "description": "Minimal review request with local cooldown, callback, async, and coroutine-bootstrap examples.", "path": "Samples~/BasicIntegration" },
     { "displayName": "Mock Config Presets", "description": "Pre-configured mock scenarios.", "path": "Samples~/MockPresets" },
     { "displayName": "Firebase Analytics Adapter", "description": "IReviewAnalyticsAdapterV2 implementation logging all 15 review events to Firebase Analytics.", "path": "Samples~/FirebaseAdapter" },
-    { "displayName": "File Feedback Sink", "description": "IFeedbackSink implementation that appends feedback as JSON lines to persistentDataPath.", "path": "Samples~/FeedbackSink" }
+    { "displayName": "File Feedback Sink", "description": "IFeedbackSink implementation that appends feedback as JSON lines to persistentDataPath.", "path": "Samples~/FeedbackSink" },
+    { "displayName": "Trigger Presets", "description": "Pre-configured ReviewSettings for casual, hardcore, and utility apps.", "path": "Samples~/TriggerPresets" }
   ],
   "dependencies": {
     "com.google.external-dependency-manager": "1.2.187"
