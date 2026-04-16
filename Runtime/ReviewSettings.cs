@@ -58,5 +58,13 @@ namespace BizSim.Google.Play.Review
 
         [Tooltip("Log full decision tree without invoking provider (dev builds only)")]
         public bool DryRunMode;
+
+        [Header("Cooldown (Wave 2)")]
+        [Tooltip("When true, the local cooldown timer resets when the app version changes (allows re-prompting after updates).")]
+        public bool ResetCooldownOnVersionChange;
+
+        [Header("Post-Flow (Wave 2)")]
+        [Tooltip("When true, a brief Android toast is shown after the review flow completes. Non-localizable — disable for i18n apps.")]
+        public bool ThankYouToastEnabled;
     }
 }

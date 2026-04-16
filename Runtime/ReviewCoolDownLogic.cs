@@ -10,6 +10,7 @@ namespace BizSim.Google.Play.Review
     public sealed class ReviewCoolDownLogic
     {
         private const string PREF_KEY = "BizSim.Review.LastPromptTicks";
+        private const string VERSION_KEY = "BizSim.Review.LastPromptAppVersion";
         private readonly int _minIntervalDays;
 
         public ReviewCoolDownLogic(int minIntervalDays)
@@ -76,7 +77,50 @@ namespace BizSim.Google.Play.Review
         public void ClearForTesting()
         {
             PlayerPrefs.DeleteKey(PREF_KEY);
+            PlayerPrefs.DeleteKey(VERSION_KEY);
             PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// Resets the cooldown if the current app version differs from the version stored
+        /// at the last prompt. Called at controller Awake when <see cref="ReviewSettings.ResetCooldownOnVersionChange"/>
+        /// is true.
+        /// </summary>
+        /// <returns>True if the cooldown was reset due to a version change.</returns>
+        public bool ResetIfVersionChanged(string currentAppVersion)
+        {
+            if (string.IsNullOrEmpty(currentAppVersion)) return false;
+            var stored = PlayerPrefs.GetString(VERSION_KEY, "");
+            if (string.IsNullOrEmpty(stored))
+            {
+                // First run or key never set — store current version, no reset needed.
+                try
+                {
+                    PlayerPrefs.SetString(VERSION_KEY, currentAppVersion);
+                    PlayerPrefs.Save();
+                }
+                catch (Exception ex)
+                {
+                    BizSimLogger.Warning($"PlayerPrefs.Save failed in ResetIfVersionChanged (first run): {ex.Message}");
+                }
+                return false;
+            }
+
+            if (stored == currentAppVersion) return false;
+
+            // Version changed — clear cooldown and store new version.
+            BizSimLogger.Info($"App version changed ({stored} -> {currentAppVersion}): resetting review cooldown.");
+            try
+            {
+                PlayerPrefs.DeleteKey(PREF_KEY);
+                PlayerPrefs.SetString(VERSION_KEY, currentAppVersion);
+                PlayerPrefs.Save();
+            }
+            catch (Exception ex)
+            {
+                BizSimLogger.Warning($"PlayerPrefs.Save failed in ResetIfVersionChanged: {ex.Message}");
+            }
+            return true;
         }
     }
 }

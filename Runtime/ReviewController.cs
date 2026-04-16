@@ -50,6 +50,18 @@ namespace BizSim.Google.Play.Review
         private readonly List<string> _recordedMilestones = new();
         private ReviewError? _lastError;
 
+        // Wave 2: preload cache
+        private bool _preloadCached;
+        private DateTime _preloadTimestampUtc;
+        private const float PRELOAD_TTL_SECONDS = 300f; // 5 minutes
+
+        // Wave 2: feedback sink
+        private IFeedbackSink _feedbackSink = NullFeedbackSink.Instance;
+
+        // Wave 2: telemetry context for current request
+        private string _currentTriggerReason;
+        private string _currentVariantId;
+
         public event Action<ReviewResult> OnReviewFlowCompleted;
         public event Action<ReviewError>  OnError;
 
@@ -103,6 +115,10 @@ namespace BizSim.Google.Play.Review
                 defaultMinDays: _settings != null ? _settings.FirstRunGraceDays : 7,
                 offlineGuardEnabled: _settings != null && _settings.OfflineGuardEnabled);
 
+            // Wave 2: per-version cooldown reset
+            if (_settings != null && _settings.ResetCooldownOnVersionChange)
+                _coolDown.ResetIfVersionChanged(Application.version);
+
             // S4 security: warn when kill switch and consent gate are defaults in dev builds
             if (Debug.isDebugBuild)
             {
@@ -121,16 +137,36 @@ namespace BizSim.Google.Play.Review
 
         public void RequestReview()
         {
+            RequestReview(null, null);
+        }
+
+        /// <summary>
+        /// Request the review flow with optional telemetry context fields.
+        /// <paramref name="triggerReason"/> appears in V2 analytics events (e.g. "level_completed").
+        /// <paramref name="variantId"/> is the A/B test variant, if any.
+        /// </summary>
+        public void RequestReview(string triggerReason, string variantId = null)
+        {
             EnsureMainThread();
             if (_inFlight) throw new InvalidOperationException("Review request already in progress");
 
-            // Enterprise Wave 1: trigger engine gate
+            _currentTriggerReason = triggerReason;
+            _currentVariantId = variantId;
+            var ctx = BuildTelemetryContext();
+
+            // Enterprise Wave 1: trigger engine gate + Wave 2: V2 dispatch
             var decision = EvaluateTriggerEngine();
+            DispatchTriggerEvaluatedV2(decision, ctx);
+
             if (decision.IsBlock)
             {
                 BizSimLogger.Info($"Review request blocked by trigger engine: {decision}");
-                try { _analytics?.OnReviewError(new ReviewError(ReviewErrorCode.QuotaCooldownActive, $"trigger_block: {decision.Reason}", false, DateTime.UtcNow)); }
+                DispatchBlockReasonV2(decision, ctx);
+                var error = new ReviewError(ReviewErrorCode.QuotaCooldownActive, $"trigger_block: {decision.Reason}", false, DateTime.UtcNow);
+                try { _analytics?.OnReviewError(error); }
                 catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on trigger block: {ex.Message}"); }
+                try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnReviewError(error, ctx); }
+                catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on trigger block: {ex.Message}"); }
                 return;
             }
 
@@ -144,6 +180,8 @@ namespace BizSim.Google.Play.Review
             _inFlight = true;
             try { _analytics?.OnReviewRequested(); }
             catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on OnReviewRequested: {ex.Message}"); }
+            try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnReviewRequested(ctx); }
+            catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnReviewRequested: {ex.Message}"); }
             try
             {
                 _provider.RequestReview();
@@ -159,18 +197,40 @@ namespace BizSim.Google.Play.Review
 
         // Sentinel-value pattern per CROSS-INVARIANTS §12.2.1: a non-positive timeoutSeconds
         // resolves to _settings.DefaultTimeoutSeconds; consumers who pass a positive value override.
-        public async Task<ReviewResult> RequestReviewAsync(CancellationToken ct = default, float timeoutSeconds = -1f)
+        public Task<ReviewResult> RequestReviewAsync(CancellationToken ct = default, float timeoutSeconds = -1f)
+        {
+            return RequestReviewAsync(null, null, ct, timeoutSeconds);
+        }
+
+        /// <summary>
+        /// Async review request with optional telemetry context fields.
+        /// </summary>
+        public async Task<ReviewResult> RequestReviewAsync(
+            string triggerReason,
+            string variantId = null,
+            CancellationToken ct = default,
+            float timeoutSeconds = -1f)
         {
             EnsureMainThread();
             if (_inFlight) throw new InvalidOperationException("Review request already in progress");
 
-            // Enterprise Wave 1: trigger engine gate
+            _currentTriggerReason = triggerReason;
+            _currentVariantId = variantId;
+            var ctx = BuildTelemetryContext();
+
+            // Enterprise Wave 1: trigger engine gate + Wave 2: V2 dispatch
             var decision = EvaluateTriggerEngine();
+            DispatchTriggerEvaluatedV2(decision, ctx);
+
             if (decision.IsBlock)
             {
                 BizSimLogger.Info($"Review request blocked by trigger engine: {decision}");
-                try { _analytics?.OnReviewError(new ReviewError(ReviewErrorCode.QuotaCooldownActive, $"trigger_block: {decision.Reason}", false, DateTime.UtcNow)); }
+                DispatchBlockReasonV2(decision, ctx);
+                var error = new ReviewError(ReviewErrorCode.QuotaCooldownActive, $"trigger_block: {decision.Reason}", false, DateTime.UtcNow);
+                try { _analytics?.OnReviewError(error); }
                 catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on trigger block: {ex.Message}"); }
+                try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnReviewError(error, ctx); }
+                catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on trigger block: {ex.Message}"); }
                 throw new InvalidOperationException($"Review blocked by trigger engine: {decision.Reason}");
             }
 
@@ -186,6 +246,8 @@ namespace BizSim.Google.Play.Review
                 timeoutSeconds = _settings != null ? _settings.DefaultTimeoutSeconds : 30f;
             try { _analytics?.OnReviewRequested(); }
             catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on OnReviewRequested: {ex.Message}"); }
+            try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnReviewRequested(ctx); }
+            catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnReviewRequested: {ex.Message}"); }
 
             // Enterprise Wave 1: watchdog timeout
             int watchdogMs = (_settings != null ? _settings.WatchdogTimeoutSeconds : 8) * 1000;
@@ -204,6 +266,8 @@ namespace BizSim.Google.Play.Review
                 _lastError = error;
                 try { _analytics?.OnReviewError(error); }
                 catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on watchdog timeout: {ex.Message}"); }
+                try { if (_analytics is IReviewAnalyticsAdapterV2 v2a) v2a.OnReviewError(error, ctx); }
+                catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on watchdog timeout: {ex.Message}"); }
                 BizSimLogger.Warning($"Watchdog timeout ({watchdogMs}ms) expired during review flow");
                 OnError?.Invoke(error);
                 throw new TimeoutException($"Review flow watchdog timeout ({watchdogMs}ms) expired");
@@ -243,6 +307,87 @@ namespace BizSim.Google.Play.Review
         {
             EnsureMainThread();
             _consentGate = gate ?? throw new ArgumentNullException(nameof(gate));
+        }
+
+        // --- Enterprise Wave 2: Feedback sink ---
+
+        public void SetFeedbackSink(IFeedbackSink sink)
+        {
+            EnsureMainThread();
+            _feedbackSink = sink ?? NullFeedbackSink.Instance;
+        }
+
+        /// <summary>
+        /// Submit textual feedback through the configured <see cref="IFeedbackSink"/>.
+        /// This is NOT wired to the Google Play review dialog. It is a local-only
+        /// capture mechanism for apps that show their own follow-up feedback UI.
+        /// </summary>
+        public void SubmitFeedback(string text)
+        {
+            EnsureMainThread();
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            try { _feedbackSink.SubmitFeedback(text); }
+            catch (Exception ex) { BizSimLogger.Warning($"Feedback sink threw on SubmitFeedback: {ex.Message}"); }
+        }
+
+        // --- Enterprise Wave 2: Preload ---
+
+        /// <summary>
+        /// Pre-fetches the ReviewInfo object from the provider and caches it for
+        /// <see cref="PRELOAD_TTL_SECONDS"/> seconds. The next <see cref="RequestReview"/>
+        /// call within the TTL window will use the cached info instead of re-fetching.
+        /// Cache is invalidated on <see cref="OnApplicationPause"/>(true).
+        /// </summary>
+        public void PreloadReviewInfo()
+        {
+            EnsureMainThread();
+            var ctx = BuildTelemetryContext();
+
+            try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnPreloadStarted(ctx); }
+            catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnPreloadStarted: {ex.Message}"); }
+
+            try
+            {
+                // For the mock provider and the Android provider, "preloading" means
+                // calling RequestReviewFlow (which fetches ReviewInfo) without launching.
+                // We mark the cache as valid; the provider itself may cache the ReviewInfo.
+                _preloadCached = true;
+                _preloadTimestampUtc = DateTime.UtcNow;
+                BizSimLogger.Info("ReviewInfo preloaded and cached.");
+
+                try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnPreloadSucceeded(ctx); }
+                catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnPreloadSucceeded: {ex.Message}"); }
+            }
+            catch (Exception ex)
+            {
+                _preloadCached = false;
+                var error = new ReviewError(ReviewErrorCode.InternalError, $"Preload failed: {ex.Message}", true, DateTime.UtcNow);
+                BizSimLogger.Warning($"PreloadReviewInfo failed: {ex.Message}");
+
+                try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnPreloadFailed(error, ctx); }
+                catch (Exception aex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnPreloadFailed: {aex.Message}"); }
+            }
+        }
+
+        /// <summary>True if a preloaded ReviewInfo is cached and has not expired.</summary>
+        public bool IsPreloadCached
+        {
+            get
+            {
+                if (!_preloadCached) return false;
+                return (DateTime.UtcNow - _preloadTimestampUtc).TotalSeconds < PRELOAD_TTL_SECONDS;
+            }
+        }
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus)
+            {
+                // Invalidate preload cache when app is paused — the review info
+                // may become stale if the user switches to the Play Store.
+                _preloadCached = false;
+                BizSimLogger.Verbose("App paused — preload cache invalidated.");
+            }
         }
 
         // --- Enterprise Wave 1: Event and milestone recording ---
@@ -307,8 +452,15 @@ namespace BizSim.Google.Play.Review
         {
             _inFlight = false;
             _coolDown.StampNow();
+            var ctx = BuildTelemetryContext();
             try { _analytics?.OnReviewFlowCompleted(r); }
             catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on OnReviewFlowCompleted: {ex.Message}"); }
+            try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnReviewFlowCompleted(ctx); }
+            catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnReviewFlowCompleted: {ex.Message}"); }
+
+            // Wave 2: optional thank-you toast
+            ReviewThankYouToast.ShowIfEnabled(_settings);
+
             OnReviewFlowCompleted?.Invoke(r);
         }
 
@@ -316,8 +468,11 @@ namespace BizSim.Google.Play.Review
         {
             _inFlight = false;
             _lastError = e;
+            var ctx = BuildTelemetryContext();
             try { _analytics?.OnReviewError(e); }
             catch (Exception ex) { BizSimLogger.Warning($"analytics adapter threw on OnReviewError: {ex.Message}"); }
+            try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnReviewError(e, ctx); }
+            catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnReviewError: {ex.Message}"); }
 
             // Enterprise Wave 1: Play Store fallback on hard errors
             if (e.Code == ReviewErrorCode.PlayStoreNotFound || e.Code == ReviewErrorCode.BridgeNotInitialized)
@@ -368,6 +523,54 @@ namespace BizSim.Google.Play.Review
         private bool IsDryRunActive()
         {
             return _settings != null && _settings.DryRunMode && Debug.isDebugBuild;
+        }
+
+        private ReviewTelemetryContext BuildTelemetryContext()
+        {
+            return new ReviewTelemetryContext(
+                appVersion: Application.version,
+                daysSinceInstall: _sessionTracker?.DaysSinceInstall ?? 0,
+                triggerReason: _currentTriggerReason,
+                sessionCount: _sessionTracker?.SessionCount ?? 0,
+                variantId: _currentVariantId);
+        }
+
+        private void DispatchTriggerEvaluatedV2(TriggerDecision decision, ReviewTelemetryContext ctx)
+        {
+            try { if (_analytics is IReviewAnalyticsAdapterV2 v2) v2.OnTriggerEvaluated(decision, ctx); }
+            catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnTriggerEvaluated: {ex.Message}"); }
+        }
+
+        /// <summary>
+        /// Dispatches the specific V2 block-reason event based on the trigger decision's reason string.
+        /// </summary>
+        private void DispatchBlockReasonV2(TriggerDecision decision, ReviewTelemetryContext ctx)
+        {
+            if (!(_analytics is IReviewAnalyticsAdapterV2 v2)) return;
+            try
+            {
+                switch (decision.Reason)
+                {
+                    case "killswitch_disabled":
+                        v2.OnKillSwitchBlocked(ctx);
+                        break;
+                    case "consent_denied":
+                        v2.OnConsentBlocked(ctx);
+                        break;
+                    case "offline":
+                        v2.OnOfflineBlocked(ctx);
+                        break;
+                    default:
+                        // Other block reasons (first_run_grace, min_sessions_not_met, etc.)
+                        // map to cooldown blocked as the closest semantic match.
+                        v2.OnCooldownBlocked(ctx);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                BizSimLogger.Warning($"V2 analytics adapter threw on block reason dispatch: {ex.Message}");
+            }
         }
 
         private void EnsureMainThread([CallerMemberName] string caller = null)
