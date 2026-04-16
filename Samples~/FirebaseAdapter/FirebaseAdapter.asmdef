@@ -1,0 +1,14 @@
+{
+  "name": "BizSim.Google.Play.Review.Samples.FirebaseAdapter",
+  "rootNamespace": "BizSim.Google.Play.Review.Samples",
+  "references": ["BizSim.Google.Play.Review"],
+  "includePlatforms": ["Android", "Editor"],
+  "autoReferenced": false,
+  "versionDefines": [
+    {
+      "name": "com.google.firebase.analytics",
+      "expression": "",
+      "define": "BIZSIM_FIREBASE"
+    }
+  ]
+}
