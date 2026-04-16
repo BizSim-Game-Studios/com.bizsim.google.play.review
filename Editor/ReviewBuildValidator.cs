@@ -28,13 +28,36 @@ namespace BizSim.Google.Play.Review.Editor
 
             // Settings asset existence check — CROSS-INVARIANTS §13 risk #5 mitigation.
             // Uses Debug.LogWarning directly because the Settings asset may be missing (LogsEnabled=false).
-            if (AssetDatabase.LoadAssetAtPath<ReviewSettings>(ReviewSettings.AssetDatabasePath) == null)
+            var settings = AssetDatabase.LoadAssetAtPath<ReviewSettings>(ReviewSettings.AssetDatabasePath);
+            if (settings == null)
             {
                 Debug.LogWarning(BizSimLogger.Prefix +
                     "ReviewSettings.asset not found at " + ReviewSettings.AssetDatabasePath + ". " +
                     "ReviewController will fall back to compile-time defaults at runtime, and the logger " +
                     "will print a one-shot fallback warning on first call. Open " +
                     "BizSim → Google Play → Review → Configuration to create the asset.");
+            }
+            else
+            {
+                // Enterprise Wave 1: watchdog invariant check
+                if (settings.WatchdogTimeoutSeconds < settings.DefaultTimeoutSeconds)
+                {
+                    Debug.LogWarning(BizSimLogger.Prefix +
+                        $"WatchdogTimeoutSeconds ({settings.WatchdogTimeoutSeconds}s) is shorter than " +
+                        $"DefaultTimeoutSeconds ({settings.DefaultTimeoutSeconds}s) — the watchdog will " +
+                        "usually pre-empt the consumer timeout. Consider raising the watchdog or " +
+                        "lowering the default timeout in ReviewSettings.");
+                }
+
+                // Enterprise Wave 1: dry-run mode in release build
+                if (settings.DryRunMode && !EditorUserBuildSettings.development)
+                {
+                    Debug.LogWarning(BizSimLogger.Prefix +
+                        "DryRunMode is enabled in ReviewSettings but this is a release build. " +
+                        "Dry-run is gated on Debug.isDebugBuild and will be ignored at runtime. " +
+                        "Disable DryRunMode in BizSim > Google Play > Review > Configuration " +
+                        "to suppress this warning.");
+                }
             }
         }
 
