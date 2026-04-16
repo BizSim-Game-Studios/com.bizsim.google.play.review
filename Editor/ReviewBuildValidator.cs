@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.Build;
@@ -58,6 +59,31 @@ namespace BizSim.Google.Play.Review.Editor
                         "Disable DryRunMode in BizSim > Google Play > Review > Configuration " +
                         "to suppress this warning.");
                 }
+            }
+
+            // Wave 3: ProGuard rule validation
+            ValidateProguardRules();
+        }
+
+        private static void ValidateProguardRules()
+        {
+            // Unity's standard consumer ProGuard rules path (set via Player Settings).
+            var proguardUserPath = Path.Combine(Application.dataPath, "Plugins", "Android", "proguard-user.txt");
+            if (!File.Exists(proguardUserPath)) return; // No custom rules — the .androidlib consumer-rules.pro covers it.
+
+            try
+            {
+                var content = File.ReadAllText(proguardUserPath);
+                var warnings = ReviewProguardValidator.Validate(content);
+                foreach (var warning in warnings)
+                {
+                    Debug.LogWarning(BizSimLogger.Prefix + "ProGuard validation: " + warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(BizSimLogger.Prefix +
+                    $"Could not read proguard-user.txt for validation: {ex.Message}");
             }
         }
 
