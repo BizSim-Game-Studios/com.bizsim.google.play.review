@@ -41,5 +41,22 @@ namespace BizSim.Google.Play.Review
         [Tooltip("Async review-flow timeout (seconds). Caller can override per-call by passing a positive value to *Async methods.")]
         [Range(5f, 120f)]
         public float DefaultTimeoutSeconds = 30f;
+
+        [Header("Trigger Engine (Wave 1)")]
+        [Tooltip("Minimum sessions before first review prompt")]
+        public int FirstRunGraceSessions = 3;
+
+        [Tooltip("Minimum days since install before first review prompt")]
+        public int FirstRunGraceDays = 7;
+
+        [Tooltip("Internal watchdog timeout in seconds (3-60)")]
+        [Range(3, 60)]
+        public int WatchdogTimeoutSeconds = 8;
+
+        [Tooltip("Skip review flow when device is offline")]
+        public bool OfflineGuardEnabled = true;
+
+        [Tooltip("Log full decision tree without invoking provider (dev builds only)")]
+        public bool DryRunMode;
     }
 }
