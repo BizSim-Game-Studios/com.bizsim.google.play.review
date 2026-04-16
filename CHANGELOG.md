@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-16
+
+### Added
+- `PreloadReviewInfo()` public API with 5-min TTL cache, auto-invalidates on app pause
+- `IReviewAnalyticsAdapterV2` extended interface with 11 new methods (3 V1-context overloads + 8 new events)
+- `ReviewTelemetryContext` structured analytics context (version, days, trigger reason, session, variant)
+- `IFeedbackSink` interface + `NullFeedbackSink` default for negative-experience routing
+- `ReviewThankYouToast` optional post-flow toast helper
+- `FirebaseReviewAnalyticsAdapter` shipped sample (BIZSIM_FIREBASE guarded, 15 methods)
+- `FileAppendFeedbackSink` shipped sample (writes to persistentDataPath)
+- `BasicIntegrationBootstrap` press-Play scene bootstrap
+- Per-version cooldown reset option (`ResetCooldownOnVersionChange`, default OFF)
+- Editor Configuration "Telemetry" tab
+
 ## [1.1.0] - 2026-04-16
 
 ### Added
