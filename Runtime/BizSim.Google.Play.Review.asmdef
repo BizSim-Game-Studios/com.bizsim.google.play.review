@@ -2,7 +2,7 @@
   "name": "BizSim.Google.Play.Review",
   "rootNamespace": "BizSim.Google.Play.Review",
   "references": [],
-  "includePlatforms": ["Android", "Editor"],
+  "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,
