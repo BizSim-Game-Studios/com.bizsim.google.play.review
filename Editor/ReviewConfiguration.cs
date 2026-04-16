@@ -10,12 +10,18 @@ namespace BizSim.Google.Play.Review.Editor
         private const string DOCS_URL = REPO_URL + "/blob/main/Documentation~/DATA_SAFETY.md";
         private Vector2 _scroll;
         private SerializedObject _settingsSO;
+        private int _selectedTab;
+
+        private static readonly string[] TAB_LABELS = new[]
+        {
+            "Settings", "Trigger Engine", "Remote Config", "Consent Gate", "Firebase", "Diagnostics", "Links"
+        };
 
         [MenuItem("BizSim/Google Play/Review/Configuration", false, 100)]
         public static void ShowWindow()
         {
             var w = GetWindow<ReviewConfiguration>("BizSim Review");
-            w.minSize = new Vector2(460, 380);
+            w.minSize = new Vector2(460, 480);
             w.Show();
         }
 
@@ -30,11 +36,21 @@ namespace BizSim.Google.Play.Review.Editor
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
             DrawHeader();
             EditorGUILayout.Space(8);
-            DrawSettingsSection();
+
+            _selectedTab = GUILayout.Toolbar(_selectedTab, TAB_LABELS);
             EditorGUILayout.Space(8);
-            DrawFirebaseSection();
-            EditorGUILayout.Space(8);
-            DrawLinksSection();
+
+            switch (_selectedTab)
+            {
+                case 0: DrawSettingsSection(); break;
+                case 1: DrawTriggerEngineSection(); break;
+                case 2: DrawRemoteConfigSection(); break;
+                case 3: DrawConsentGateSection(); break;
+                case 4: DrawFirebaseSection(); break;
+                case 5: DrawDiagnosticsSection(); break;
+                case 6: DrawLinksSection(); break;
+            }
+
             EditorGUILayout.EndScrollView();
         }
 
@@ -66,24 +82,137 @@ namespace BizSim.Google.Play.Review.Editor
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("DefaultTimeoutSeconds"));
 
             EditorGUILayout.Space();
+            DrawApplyRevertResetButtons();
+        }
+
+        private void DrawTriggerEngineSection()
+        {
+            EditorGUILayout.LabelField("Trigger Engine Settings", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Configure the built-in trigger engine thresholds. These values control when " +
+                "the review prompt is eligible to fire. The trigger engine evaluates these " +
+                "criteria before every RequestReview call.",
+                MessageType.Info);
+
+            if (_settingsSO == null) OnEnable();
+            _settingsSO.Update();
+
+            EditorGUILayout.PropertyField(_settingsSO.FindProperty("FirstRunGraceSessions"));
+            EditorGUILayout.PropertyField(_settingsSO.FindProperty("FirstRunGraceDays"));
+            EditorGUILayout.PropertyField(_settingsSO.FindProperty("WatchdogTimeoutSeconds"));
+            EditorGUILayout.PropertyField(_settingsSO.FindProperty("OfflineGuardEnabled"));
+            EditorGUILayout.PropertyField(_settingsSO.FindProperty("DryRunMode"));
+
+            EditorGUILayout.Space();
+            DrawApplyRevertResetButtons();
+        }
+
+        private void DrawRemoteConfigSection()
+        {
+            EditorGUILayout.LabelField("Remote Config Integration", EditorStyles.boldLabel);
+
+            string configSourceType = Application.isPlaying
+                ? GetRuntimeConfigSourceType()
+                : "StaticReviewConfigSource (default at edit time)";
+
+            EditorGUILayout.LabelField("Current IReviewConfigSource:", configSourceType);
+
+            bool remoteEnabled = true;
+            if (Application.isPlaying)
+            {
+                var controller = ReviewController.Instance;
+                if (controller != null)
+                {
+                    var snap = controller.GetDiagnosticSnapshot();
+                    remoteEnabled = snap.RemoteEnabled;
+                }
+            }
+
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Apply"))
-                {
-                    _settingsSO.ApplyModifiedProperties();
-                    ReviewSettingsAsset.Save();
-                    BizSimLogger.InvalidateCache();
-                }
-                if (GUILayout.Button("Revert"))
-                {
-                    _settingsSO.Update();
-                }
-                if (GUILayout.Button("Reset to defaults"))
-                {
-                    ReviewSettingsAsset.ResetToDefaults();
-                    _settingsSO = new SerializedObject(ReviewSettingsAsset.LoadOrCreate());
-                    BizSimLogger.InvalidateCache();
-                }
+                var prev = GUI.color;
+                GUI.color = remoteEnabled ? Color.green : Color.red;
+                EditorGUILayout.LabelField(
+                    remoteEnabled ? "RemoteEnabled: YES" : "RemoteEnabled: NO (kill switch active)",
+                    EditorStyles.boldLabel);
+                GUI.color = prev;
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.HelpBox(
+                "Call ReviewController.Instance.SetConfigSource() at runtime to wire a Firebase Remote Config " +
+                "or Unity Gaming Services backend. The default StaticReviewConfigSource always returns " +
+                "RemoteEnabled=true with no thresholds. See Documentation~/REMOTE-CONFIG-INTEGRATION.md.",
+                MessageType.Info);
+        }
+
+        private void DrawConsentGateSection()
+        {
+            EditorGUILayout.LabelField("Consent Gate Integration", EditorStyles.boldLabel);
+
+            string gateType = Application.isPlaying
+                ? GetRuntimeConsentGateType()
+                : "AlwaysAllowConsentGate (default at edit time)";
+
+            EditorGUILayout.LabelField("Current IConsentGate:", gateType);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.HelpBox(
+                "Call ReviewController.Instance.SetConsentGate() at runtime to wire your CMP (Consent " +
+                "Management Platform) integration. The default AlwaysAllowConsentGate skips consent " +
+                "verification entirely. For GDPR/DMA regions, you MUST wire a real consent gate. " +
+                "See Documentation~/GDPR-INTEGRATION.md.",
+                MessageType.Warning);
+        }
+
+        private void DrawDiagnosticsSection()
+        {
+            EditorGUILayout.LabelField("Diagnostics", EditorStyles.boldLabel);
+
+            if (!Application.isPlaying)
+            {
+                EditorGUILayout.HelpBox(
+                    "Enter Play Mode to view live diagnostic data from the ReviewController.",
+                    MessageType.Info);
+                return;
+            }
+
+            var controller = ReviewController.Instance;
+            if (controller == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "ReviewController.Instance is null. The controller has not been accessed yet.",
+                    MessageType.Warning);
+                return;
+            }
+
+            var snapshot = controller.GetDiagnosticSnapshot();
+
+            EditorGUILayout.LabelField("Session Count:", snapshot.SessionCount.ToString());
+            EditorGUILayout.LabelField("Launch Count:", snapshot.LaunchCount.ToString());
+            EditorGUILayout.LabelField("Days Since Install:", snapshot.DaysSinceInstall.ToString());
+            EditorGUILayout.LabelField("Cooldown Active:", snapshot.CooldownActive.ToString());
+            EditorGUILayout.LabelField("Cooldown Remaining (s):", snapshot.CooldownRemainingSeconds);
+            EditorGUILayout.LabelField("Last Flow Timestamp:", snapshot.LastFlowTimestamp);
+            EditorGUILayout.LabelField("Last Error Code:", snapshot.LastErrorCode);
+            EditorGUILayout.LabelField("Remote Enabled:", snapshot.RemoteEnabled.ToString());
+            EditorGUILayout.LabelField("Consent Granted:", snapshot.ConsentGranted.ToString());
+            EditorGUILayout.LabelField("Offline Guard Triggered:", snapshot.OfflineGuardTriggered.ToString());
+            EditorGUILayout.LabelField("Config Source Type:", snapshot.ConfigSourceType);
+            EditorGUILayout.LabelField("Trigger Engine Type:", snapshot.TriggerEngineType);
+            EditorGUILayout.LabelField("App Version:", snapshot.AppVersion);
+            EditorGUILayout.LabelField("Package Version:", snapshot.PackageVersion);
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Copy JSON to Clipboard"))
+            {
+                EditorGUIUtility.systemCopyBuffer = snapshot.ToJson();
+                Debug.Log(BizSimLogger.Prefix + "Diagnostic snapshot copied to clipboard.");
+            }
+
+            if (GUILayout.Button("Refresh"))
+            {
+                Repaint();
             }
         }
 
@@ -122,6 +251,45 @@ namespace BizSim.Google.Play.Review.Editor
             EditorGUILayout.LabelField("Documentation & Support", EditorStyles.boldLabel);
             if (GUILayout.Button("Open GitHub Repository")) Application.OpenURL(REPO_URL);
             if (GUILayout.Button("Open Data Safety Documentation")) Application.OpenURL(DOCS_URL);
+        }
+
+        private void DrawApplyRevertResetButtons()
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Apply"))
+                {
+                    _settingsSO.ApplyModifiedProperties();
+                    ReviewSettingsAsset.Save();
+                    BizSimLogger.InvalidateCache();
+                }
+                if (GUILayout.Button("Revert"))
+                {
+                    _settingsSO.Update();
+                }
+                if (GUILayout.Button("Reset to defaults"))
+                {
+                    ReviewSettingsAsset.ResetToDefaults();
+                    _settingsSO = new SerializedObject(ReviewSettingsAsset.LoadOrCreate());
+                    BizSimLogger.InvalidateCache();
+                }
+            }
+        }
+
+        private static string GetRuntimeConfigSourceType()
+        {
+            var controller = ReviewController.Instance;
+            if (controller == null) return "N/A (controller not initialized)";
+            var snap = controller.GetDiagnosticSnapshot();
+            return snap.ConfigSourceType;
+        }
+
+        private static string GetRuntimeConsentGateType()
+        {
+            var controller = ReviewController.Instance;
+            if (controller == null) return "N/A (controller not initialized)";
+            var snap = controller.GetDiagnosticSnapshot();
+            return snap.ConsentGranted ? "Consented" : "Not consented";
         }
     }
 }
