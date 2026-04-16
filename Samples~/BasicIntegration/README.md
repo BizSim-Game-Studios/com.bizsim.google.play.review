@@ -1,13 +1,19 @@
 # Basic Integration Sample
 
-Two example scripts demonstrating both the callback-event and async/await styles for the Google Play In-App Review bridge.
+Three example scripts demonstrating callback-event, async/await, and coroutine-bootstrap styles for the Google Play In-App Review bridge.
 
 ## Scripts
 
 - **`BasicReviewPrompt.cs`** — callback-event style. Subscribes to `ReviewController.Instance.OnReviewFlowCompleted` + `OnError` in `Start()`, calls `RequestReview()` on a button click.
 - **`AsyncReviewPrompt.cs`** — async/await style. Calls `ReviewController.Instance.RequestReviewAsync(ct, 30f)` and awaits the result directly, with try/catch for error handling.
+- **`BasicIntegrationBootstrap.cs`** (Wave 2) — coroutine-based self-contained bootstrap. On Start: records an event and session, waits 2 seconds, then evaluates the trigger engine and requests the review flow if allowed. Uses `RequestReview("sample_basic_integration")` with a trigger reason for V2 telemetry context.
 
 Pick ONE style for your project — don't wire both to the same button.
+
+## Policy notes
+
+- **P3 (no button-triggered reviews):** `BasicIntegrationBootstrap` uses `RecordEvent`, NOT a user-tappable button, to trigger the review flow. Per Google Play policy, never wire `RequestReview` to a button that the user can tap directly.
+- **Quota-invisible semantics:** `OnReviewFlowCompleted` firing does NOT mean the review dialog was shown. Do not gate rewards, prompts, or any user-visible behavior on whether the review was shown.
 
 ## First-run scene setup
 
