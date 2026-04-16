@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-16
+
+### Added
+- ProGuard build-time smoke validator warns if `ReviewBridge` / callback interfaces not kept
+- Trigger preset ScriptableObjects: CasualGame, HardcoreGame, UtilityApp (drop-in starting points)
+- `WriteDiagnosticSnapshot(path)` file writer (development builds only, S2 security)
+- `Documentation~/UPGRADE-1.x.md` consumer upgrade guide (1.0 → 1.3 path)
+- `Documentation~/TELEMETRY-DASHBOARD.md` Firebase dashboard template with funnel + BigQuery SQL
+
 ## [1.2.0] - 2026-04-16
 
 ### Added
