@@ -440,6 +440,30 @@ namespace BizSim.Google.Play.Review
             };
         }
 
+        /// <summary>
+        /// Writes a JSON diagnostic snapshot to the specified file path.
+        /// Only available in development builds and the editor — release builds
+        /// return <c>false</c> and log a warning (S2 security: prevents ADB
+        /// extraction of consumer type names and config state on production devices).
+        /// </summary>
+        /// <param name="path">Absolute file path to write the JSON snapshot to.</param>
+        /// <returns><c>true</c> if the file was written; <c>false</c> in release builds.</returns>
+        public bool WriteDiagnosticSnapshot(string path)
+        {
+            EnsureMainThread();
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(nameof(path));
+            var snapshot = GetDiagnosticSnapshot();
+            System.IO.File.WriteAllText(path, snapshot.ToJson());
+            BizSimLogger.Info($"Diagnostic snapshot written to {path}");
+            return true;
+#else
+            BizSimLogger.Warning("WriteDiagnosticSnapshot disabled in release builds");
+            return false;
+#endif
+        }
+
         // QA escape hatch — NOT guarded by EnsureMainThread per Thread-safety contract.
         public void ClearLocalCooldownForTesting()
         {
