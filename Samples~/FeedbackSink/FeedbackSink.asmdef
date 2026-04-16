@@ -1,0 +1,7 @@
+{
+  "name": "BizSim.Google.Play.Review.Samples.FeedbackSink",
+  "rootNamespace": "BizSim.Google.Play.Review.Samples",
+  "references": ["BizSim.Google.Play.Review"],
+  "includePlatforms": ["Android", "Editor"],
+  "autoReferenced": false
+}
