@@ -14,7 +14,7 @@ namespace BizSim.Google.Play.Review.Editor
 
         private static readonly string[] TAB_LABELS = new[]
         {
-            "Settings", "Trigger Engine", "Remote Config", "Consent Gate", "Firebase", "Diagnostics", "Links"
+            "Settings", "Trigger Engine", "Remote Config", "Consent Gate", "Firebase", "Telemetry", "Diagnostics", "Links"
         };
 
         [MenuItem("BizSim/Google Play/Review/Configuration", false, 100)]
@@ -47,8 +47,9 @@ namespace BizSim.Google.Play.Review.Editor
                 case 2: DrawRemoteConfigSection(); break;
                 case 3: DrawConsentGateSection(); break;
                 case 4: DrawFirebaseSection(); break;
-                case 5: DrawDiagnosticsSection(); break;
-                case 6: DrawLinksSection(); break;
+                case 5: DrawTelemetrySection(); break;
+                case 6: DrawDiagnosticsSection(); break;
+                case 7: DrawLinksSection(); break;
             }
 
             EditorGUILayout.EndScrollView();
@@ -80,6 +81,11 @@ namespace BizSim.Google.Play.Review.Editor
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("EnableAnalyticsByDefault"));
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("MinPromptIntervalDays"));
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("DefaultTimeoutSeconds"));
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Wave 2 Settings", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_settingsSO.FindProperty("ResetCooldownOnVersionChange"));
+            EditorGUILayout.PropertyField(_settingsSO.FindProperty("ThankYouToastEnabled"));
 
             EditorGUILayout.Space();
             DrawApplyRevertResetButtons();
@@ -244,6 +250,63 @@ namespace BizSim.Google.Play.Review.Editor
             using (new EditorGUI.DisabledScope(!definePresent))
                 if (GUILayout.Button("Remove BIZSIM_FIREBASE from all platforms"))
                     BizSimDefineManager.RemoveFirebaseDefineAllPlatforms();
+        }
+
+        private void DrawTelemetrySection()
+        {
+            EditorGUILayout.LabelField("Samples & Telemetry (Wave 2)", EditorStyles.boldLabel);
+
+            EditorGUILayout.HelpBox(
+                "Wave 2 adds IReviewAnalyticsAdapterV2 with 15 event methods. The controller " +
+                "dispatches V2 events automatically when the adapter implements the V2 interface.",
+                MessageType.Info);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("V2 Event Names", EditorStyles.boldLabel);
+
+            string[] v2Events = new[]
+            {
+                "OnReviewRequested(ctx)",
+                "OnReviewFlowCompleted(ctx)",
+                "OnReviewError(error, ctx)",
+                "OnTriggerEvaluated(decision, ctx)",
+                "OnPreloadStarted(ctx)",
+                "OnPreloadSucceeded(ctx)",
+                "OnPreloadFailed(error, ctx)",
+                "OnKillSwitchBlocked(ctx)",
+                "OnConsentBlocked(ctx)",
+                "OnOfflineBlocked(ctx)",
+                "OnCooldownBlocked(ctx)",
+            };
+
+            foreach (var e in v2Events)
+                EditorGUILayout.LabelField("  " + e);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Adapter Wiring Status", EditorStyles.boldLabel);
+
+            if (!Application.isPlaying)
+            {
+                EditorGUILayout.LabelField("Enter Play Mode to see adapter status.");
+                return;
+            }
+
+            var controller = ReviewController.Instance;
+            if (controller == null)
+            {
+                EditorGUILayout.LabelField("ReviewController not initialized.");
+                return;
+            }
+
+            // Use diagnostics to infer adapter wiring (no direct accessor for _analytics)
+            EditorGUILayout.LabelField("Preload Cached:", controller.IsPreloadCached.ToString());
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Available Samples", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("  FirebaseAdapter — Samples~/FirebaseAdapter/");
+            EditorGUILayout.LabelField("  FeedbackSink — Samples~/FeedbackSink/");
+            EditorGUILayout.LabelField("  BasicIntegration — Samples~/BasicIntegration/");
+            EditorGUILayout.LabelField("  MockPresets — Samples~/MockPresets/");
         }
 
         private void DrawLinksSection()
