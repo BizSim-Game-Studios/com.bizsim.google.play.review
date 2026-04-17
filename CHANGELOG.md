@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-17
+
+### Added
+- **K8 PackageVersion schema unification (Plan G).** Three new `public const string` fields on `PackageVersion`: `NativeSdkVersion` (`"2.0.2"`), `NativeSdkLabel` (`"Play Core (review)"`), `NativeSdkArtifactCoord` (`"com.google.android.play:review:2.0.2"`). Enables workspace-wide consistent native SDK version reporting in `BizSimPackageDashboard` and the `version-drift-check.sh` hook. See `development-plans/plans/2026-04-17-enterprise-quality-bar/06-conventions/06-package-version-schema.md`.
+- `PackageVersionSchemaTest` drift guard (4 assertions).
+
+### Deprecated
+- `PackageVersion.PlayCoreVersion` — now an `[Obsolete]` alias of `NativeSdkVersion`. Removed in 2.0.0 per ADR-009. Consumers should migrate to `NativeSdkVersion`; legacy reads continue to work for one MINOR cycle.
+
 ## [1.3.0] - 2026-04-16
 
 ### Added
