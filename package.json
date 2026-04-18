@@ -1,7 +1,7 @@
 {
   "name": "com.bizsim.google.play.review",
   "displayName": "BizSim Google Play In-App Review",
-  "description": "Unity package for Google Play In-App Review API (v2.0.2). Smart trigger engine with configurable thresholds, remote kill switch, GDPR consent gate, diagnostic snapshots, cooldown management, and Firebase telemetry adapter.",
+  "description": "Unity package for Google Play In-App Review (v2.0.2). Production-ready Java-to-C# wrapper for requesting and launching the native review flow with quota-aware local cooldown, main-thread safety, and a mock provider for editor testing.",
   "version": "1.4.2",
   "unity": "6000.0",
   "changelogUrl": "https://github.com/BizSim-Game-Studios/com.bizsim.google.play.review/blob/main/CHANGELOG.md",
