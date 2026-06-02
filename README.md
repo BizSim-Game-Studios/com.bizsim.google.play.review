@@ -2,7 +2,7 @@
 
 [![Unity 6000.0+](https://img.shields.io/badge/Unity-6000.0%2B-blue.svg)](https://unity.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
-[![Version](https://img.shields.io/badge/Version-1.0.0-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.4.4-orange.svg)](CHANGELOG.md)
 
 Unity bridge for the [Google Play In-App Review API](https://developer.android.com/guide/playcore/in-app-review) (v2.0.2).
 Requests and launches the native in-app review flow with a local cooldown, analytics hooks, and an editor mock provider.
@@ -46,7 +46,7 @@ If you already have other OpenUPM-distributed packages, you may already have thi
 ```json
 {
   "dependencies": {
-    "com.bizsim.google.play.review": "https://github.com/BizSim-Game-Studios/com.bizsim.google.play.review.git#v1.0.0"
+    "com.bizsim.google.play.review": "https://github.com/BizSim-Game-Studios/com.bizsim.google.play.review.git#v1.4.4"
   }
 }
 ```
