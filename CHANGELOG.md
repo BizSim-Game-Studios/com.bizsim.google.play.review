@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-06-03
+
+### Fixed
+- **CS0618 obsolete-symbol warning** in `ReviewConfiguration` — the SDK-version label read `PackageVersion.PlayCoreVersion` (an `[Obsolete]` alias); now resolved via a reflection helper preferring the canonical `NativeSdkVersion`, matching the games/appupdate/assetdelivery siblings.
+- **Settings panel edit-discard bug.** `ReviewConfiguration.OnGUI` now calls `SerializedObject.Update()` once at frame start and `ApplyModifiedProperties()` once at frame end (previously per-section `Update()` calls discarded checkbox/slider edits mid-frame). The **Revert** button now reloads the asset from disk (`new SerializedObject(LoadOrCreate())`) instead of re-reading the already-mutated in-memory object, so Revert actually discards unsaved edits — satisfying the Apply/Revert/Reset contract in `google-play-bridge-pattern.md` §8.
+
+### Changed
+- **Hardened ProGuard keep rule** for the JNI bridge: `ReviewBridge$IReviewCallback` → `ReviewBridge$*` (both `proguard-rules.pro` and `consumer-rules.pro`), future-proofing against new nested callback types. `ReviewBridge` has one nested type today, so the kept set is unchanged.
+- **`ReviewSettings` CreateAssetMenu path** unified to `BizSim/Google Play Service/Review Settings`, matching the games/appupdate/assetdelivery sibling convention. No effect on existing serialized assets.
+
 ## [1.4.2] - 2026-04-17
 
 ### Fixed

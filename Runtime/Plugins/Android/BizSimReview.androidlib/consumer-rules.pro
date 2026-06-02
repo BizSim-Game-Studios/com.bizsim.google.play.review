@@ -7,4 +7,4 @@
 
 # BizSim bridge class — called from Unity C# via AndroidJavaClass/Object
 -keep class com.bizsim.google.play.review.ReviewBridge { *; }
--keep class com.bizsim.google.play.review.ReviewBridge$IReviewCallback { *; }
+-keep class com.bizsim.google.play.review.ReviewBridge$* { *; }

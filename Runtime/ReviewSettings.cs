@@ -9,7 +9,7 @@ namespace BizSim.Google.Play.Review
     /// <c>Assets/Resources/BizSim/GooglePlay/ReviewSettings.asset</c>.
     /// </summary>
     [CreateAssetMenu(
-        menuName = "BizSim/Google Play/Review Settings",
+        menuName = "BizSim/Google Play Service/Review Settings",
         fileName = "ReviewSettings",
         order = 0)]
     public sealed class ReviewSettings : ScriptableObject

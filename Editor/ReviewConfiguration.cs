@@ -1,3 +1,4 @@
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using BizSim.Google.Play.Editor.Core;
@@ -33,6 +34,15 @@ namespace BizSim.Google.Play.Review.Editor
 
         private void OnGUI()
         {
+            if (_settingsSO == null) OnEnable();
+            if (_settingsSO == null) return;
+
+            // Standard Unity SerializedObject pattern: single Update() at frame start,
+            // single ApplyModifiedProperties() at frame end. Calling Update() per-section
+            // mid-GUI would discard checkbox/slider edits before they propagate to the
+            // SerializedObject's backing asset, breaking interactivity entirely.
+            _settingsSO.Update();
+
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
             DrawHeader();
             EditorGUILayout.Space(8);
@@ -53,13 +63,25 @@ namespace BizSim.Google.Play.Review.Editor
             }
 
             EditorGUILayout.EndScrollView();
+
+            // Persist in-memory edits across frames; disk save happens only on Apply.
+            _settingsSO.ApplyModifiedProperties();
+        }
+
+        private static string ResolveNativeSdkVersion()
+        {
+            const BindingFlags F = BindingFlags.Public | BindingFlags.Static;
+            var t = typeof(PackageVersion);
+            var f = t.GetField("NativeSdkVersion", F)
+                 ?? t.GetField("PlayCoreVersion", F);
+            return f?.GetRawConstantValue() as string ?? "unknown";
         }
 
         private void DrawHeader()
         {
             EditorGUILayout.LabelField("BizSim Google Play In-App Review", EditorStyles.boldLabel);
             EditorGUILayout.LabelField($"Package version: {PackageVersion.Current}");
-            EditorGUILayout.LabelField($"Play Core: {PackageVersion.PlayCoreVersion}");
+            EditorGUILayout.LabelField($"Play Core: {ResolveNativeSdkVersion()}");
             EditorGUILayout.LabelField($"Released: {PackageVersion.ReleaseDate}");
         }
 
@@ -72,9 +94,7 @@ namespace BizSim.Google.Play.Review.Editor
                 "project-wide cooldown interval, log level, or mock toggle.",
                 MessageType.Info);
 
-            if (_settingsSO == null) OnEnable();
-            _settingsSO.Update();
-
+            // _settingsSO already Update()'d once at the top of OnGUI — do NOT call again here.
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("LogsEnabled"));
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("LogLevel"));
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("UseMockInDevelopmentBuild"));
@@ -100,9 +120,7 @@ namespace BizSim.Google.Play.Review.Editor
                 "criteria before every RequestReview call.",
                 MessageType.Info);
 
-            if (_settingsSO == null) OnEnable();
-            _settingsSO.Update();
-
+            // _settingsSO already Update()'d once at the top of OnGUI — do NOT call again here.
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("FirstRunGraceSessions"));
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("FirstRunGraceDays"));
             EditorGUILayout.PropertyField(_settingsSO.FindProperty("WatchdogTimeoutSeconds"));
@@ -322,13 +340,19 @@ namespace BizSim.Google.Play.Review.Editor
             {
                 if (GUILayout.Button("Apply"))
                 {
-                    _settingsSO.ApplyModifiedProperties();
+                    // Flush pending edits, then write the asset to disk.
+                    _settingsSO.ApplyModifiedPropertiesWithoutUndo();
                     ReviewSettingsAsset.Save();
                     BizSimLogger.InvalidateCache();
+                    _settingsSO.Update();
                 }
                 if (GUILayout.Button("Revert"))
                 {
-                    _settingsSO.Update();
+                    // Discard unsaved in-memory edits by reloading the asset from disk.
+                    // ApplyModifiedProperties() runs every frame (mutating the live asset),
+                    // so Update() alone cannot undo edits — rebuild the SerializedObject over
+                    // the disk-loaded asset, mirroring the Reset branch. (bridge-pattern §8)
+                    _settingsSO = new SerializedObject(ReviewSettingsAsset.LoadOrCreate());
                 }
                 if (GUILayout.Button("Reset to defaults"))
                 {
