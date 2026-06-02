@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.4] - 2026-06-03
+
+### Fixed
+- **Settings-panel Revert button (completes the incomplete v1.4.3 fix).** v1.4.3 rebuilt the `SerializedObject` from disk on Revert, but `OnGUI` still called `ApplyModifiedProperties()` every frame — mutating the live asset before Revert ran, so the disk reload still saw mutated state and discarded nothing. Removed the per-frame `Update()` / `ApplyModifiedProperties()` from `OnGUI`; edits now stay pending in the `SerializedObject` and are flushed only by Apply, so Revert genuinely discards unsaved edits. Verified in Unity (junkyard-tycoon): an in-memory probe confirmed the per-frame-apply path keeps edits while the no-per-frame-apply path discards them; recompile is clean.
+
 ## [1.4.3] - 2026-06-03
 
 ### Fixed
