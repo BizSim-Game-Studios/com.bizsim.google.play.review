@@ -21,14 +21,20 @@ namespace BizSim.Google.Play.Review.Tests
             _mockConfig.SimulatedError = ReviewErrorCode.NoError;
 
             _go = new GameObject("[test-controller]");
+            // Awake reads _mockConfig to build the provider, so the field has to be injected
+            // before the component wakes. AddComponent on an inactive GameObject defers Awake
+            // until SetActive(true).
+            _go.SetActive(false);
             _controller = _go.AddComponent<ReviewController>();
-            // Force singleton wire-up on main thread before any test dispatches to Task.Run
-            var _ = ReviewController.Instance;
 
             // Inject the mock config via reflection (private [SerializeField])
             var field = typeof(ReviewController).GetField("_mockConfig",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             field?.SetValue(_controller, _mockConfig);
+
+            _go.SetActive(true);
+            // Force singleton wire-up on main thread before any test dispatches to Task.Run
+            var _ = ReviewController.Instance;
         }
 
         [TearDown]

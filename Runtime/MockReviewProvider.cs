@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace BizSim.Google.Play.Review
 {
@@ -9,6 +10,11 @@ namespace BizSim.Google.Play.Review
     /// by firing <see cref="OnReviewFlowCompleted"/> or <see cref="OnError"/> after the
     /// configured delay. Honors the shared <see cref="ReviewCoolDownLogic"/> so cooldown
     /// behavior matches the Android path.
+    /// The config is optional. <see cref="ReviewController"/> only ever exists via its own
+    /// Instance getter, which builds it with AddComponent, so its Inspector-only
+    /// <c>_mockConfig</c> field is null on that path and no assignment is possible. With no
+    /// config supplied the default scenario is used, as Documentation~/troubleshooting.md
+    /// already documents.
     /// </summary>
     public sealed class MockReviewProvider : IReviewProvider, IDisposable
     {
@@ -23,10 +29,27 @@ namespace BizSim.Google.Play.Review
         public bool CanRequestReview() => _coolDown.CanRequestReview();
         public TimeSpan CooldownRemaining() => _coolDown.Remaining();
 
+        // `cfg != null`, not `cfg ??`: ReviewMockConfig is a UnityEngine.Object, and `??`
+        // bypasses Unity's overloaded equality, so a destroyed asset would pass as non-null
+        // and fail later with MissingReferenceException. coolDown keeps its throw — a null
+        // cooldown is a wiring error, while a null cfg means "no scenario chosen" and has a
+        // documented default. Matches MockAppUpdateProvider.
         public MockReviewProvider(ReviewMockConfig cfg, ReviewCoolDownLogic coolDown)
         {
-            _cfg      = cfg ?? throw new ArgumentNullException(nameof(cfg));
+            _cfg      = cfg != null ? cfg : CreateDefaultConfig();
             _coolDown = coolDown ?? throw new ArgumentNullException(nameof(coolDown));
+        }
+
+        private static ReviewMockConfig CreateDefaultConfig()
+        {
+            var cfg = ScriptableObject.CreateInstance<ReviewMockConfig>();
+            cfg.hideFlags = HideFlags.HideAndDontSave;
+            BizSimLogger.Info(
+                "No ReviewMockConfig assigned — using the default mock scenario " +
+                "(SimulatedDelaySeconds=0.5, SimulatedError=NoError). Assign a preset from " +
+                "Samples~/MockPresets to ReviewController's Mock Config field to simulate " +
+                "other scenarios.");
+            return cfg;
         }
 
         public void RequestReview()
