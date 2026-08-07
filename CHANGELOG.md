@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.6] - 2026-08-07
+
+### Fixed
+- **`ReviewController.Instance` threw `ArgumentNullException: cfg` on every Editor and non-Android play session.** The controller is only ever created by its own `Instance` getter (`new GameObject` + `AddComponent`), so the Inspector-only `[SerializeField] ReviewMockConfig _mockConfig` was always `null`, and the `#else` branch handed that `null` straight to `MockReviewProvider`, whose constructor rejected it — the dependency was unsatisfiable on the only construction path the package offers. `MockReviewProvider` now materializes a default `ReviewMockConfig` (0.5 s delay, `NoError`) when none is supplied, matching `MockAppUpdateProvider` and the behaviour `Documentation~/troubleshooting.md` §4 already documented. `coolDown` still throws on `null`; that one is a genuine wiring error. This also covers the `UNITY_ANDROID` + `DEVELOPMENT_BUILD` + `UseMockInDevelopmentBuild` path, which passed the same `null` and would have crashed on-device the moment that setting was enabled.
+- `ReviewControllerMainThreadTests` injected `_mockConfig` by reflection *after* `AddComponent` had run `Awake` and built the provider, so the injected scenario never reached it. The component is now added to an inactive `GameObject` and activated after injection.
+
 ## [1.4.5] - 2026-07-16
 
 ### Fixed
