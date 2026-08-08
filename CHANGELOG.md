@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-08
+
+### Changed
+- **`Instance` no longer builds a controller once the application is quitting.** It returns `null` instead, matching this package's own `UnityMainThreadDispatcher`. Previously any consumer that touched `Instance` during shutdown — most often to unsubscribe from its own `OnDestroy` — constructed a `DontDestroyOnLoad` GameObject in the middle of teardown, which Unity reported as `Some objects were not cleaned up when closing the scene ... [ReviewController]`. v1.4.7's `HasInstance` made that avoidable; this makes it safe by default.
+
+  This is a behaviour change, hence the minor bump: a caller that previously received a freshly built controller during shutdown now receives `null`. Every call site in this package's own Editor code already handles `null` (`ReviewConfiguration` reports "the controller has not been accessed yet"), and no consumer should be starting a review flow while the app is closing.
+
+  `HasInstance` is still worth using: the guard covers **quitting**, not a plain scene unload, so a consumer destroyed by a scene change can still resurrect the controller from its `OnDestroy` unless it checks first or caches the reference it subscribed to.
+
+- `_isQuitting` is cleared in a `SubsystemRegistration` initializer rather than left to the domain reload. Without that, a project with Enter Play Mode Options disabling the reload would carry the flag out of the first session and `Instance` would return `null` for the rest of the Editor's life. The `Application.quitting` handler is re-subscribed with `-=` first so sessions do not accumulate handlers.
+
+  Verified in junkyard-tycoon: two consecutive Play Mode sessions both logged `ReviewController hooks attached, session recorded`, and four sessions after the change produced no teardown error where the three before it each did.
+
 ## [1.4.7] - 2026-08-08
 
 ### Added

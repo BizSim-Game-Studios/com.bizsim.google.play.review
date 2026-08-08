@@ -16,6 +16,25 @@ namespace BizSim.Google.Play.Review
     public sealed class ReviewController : MonoBehaviour, IReviewProvider
     {
         private static ReviewController _instance;
+        private static bool _isQuitting;
+
+        /// <summary>
+        /// Clears the statics before a scene exists. Required, not defensive: with Enter Play
+        /// Mode Options disabling the domain reload, <c>_isQuitting</c> would still be true from
+        /// the previous session and <see cref="Instance"/> would refuse to build for the rest of
+        /// the Editor's life. Re-subscribing with <c>-=</c> first keeps one handler across
+        /// sessions instead of accumulating them.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+            _isQuitting = false;
+            Application.quitting -= HandleApplicationQuitting;
+            Application.quitting += HandleApplicationQuitting;
+        }
+
+        private static void HandleApplicationQuitting() => _isQuitting = true;
 
         /// <summary>
         /// True when a controller already exists. Unlike <see cref="Instance"/> this never
@@ -32,7 +51,7 @@ namespace BizSim.Google.Play.Review
             get
             {
                 if (_instance != null) return _instance;
-                if (!Application.isPlaying) return null;
+                if (!Application.isPlaying || _isQuitting) return null;
                 var go = new GameObject("[ReviewController]");
                 _instance = go.AddComponent<ReviewController>();
                 DontDestroyOnLoad(go);
