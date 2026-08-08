@@ -16,6 +16,17 @@ namespace BizSim.Google.Play.Review
     public sealed class ReviewController : MonoBehaviour, IReviewProvider
     {
         private static ReviewController _instance;
+
+        /// <summary>
+        /// True when a controller already exists. Unlike <see cref="Instance"/> this never
+        /// builds one, which is what teardown code needs: <c>OnDestroy</c> sets the backing
+        /// field to null, so reading <see cref="Instance"/> from a consumer's own
+        /// <c>OnDestroy</c> constructs a fresh <c>DontDestroyOnLoad</c> GameObject in the
+        /// middle of scene teardown and Unity reports it as an object that was not cleaned
+        /// up. Guard such call sites with <c>HasInstance ? Instance : null</c>.
+        /// </summary>
+        public static bool HasInstance => _instance != null;
+
         public static ReviewController Instance
         {
             get

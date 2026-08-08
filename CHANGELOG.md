@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.7] - 2026-08-08
+
+### Added
+- **`ReviewController.HasInstance`** — reports whether a controller exists without building one. `Instance` constructs a `DontDestroyOnLoad` GameObject whenever it finds none, and `OnDestroy` nulls the backing field, so a consumer that reads `Instance` from its *own* `OnDestroy` to unsubscribe resurrects the controller mid-teardown. Unity then reports it by name: `Some objects were not cleaned up when closing the scene. (Did you spawn new GameObjects from OnDestroy?) [ReviewController]`. Observed in junkyard-tycoon on every Play Mode exit; guard teardown call sites with `HasInstance ? Instance : null`. Purely additive — `Instance` is unchanged, so no existing caller behaves differently.
+
+  A stronger fix is available and deliberately not taken here: making the getter refuse to build while the application is quitting, the way `UnityMainThreadDispatcher` does. That changes what `Instance` returns during shutdown, which is a behaviour change for every consumer, so it wants its own release rather than riding along with an additive one.
+
 ## [1.4.6] - 2026-08-07
 
 ### Fixed
