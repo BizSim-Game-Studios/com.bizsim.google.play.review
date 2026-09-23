@@ -26,7 +26,7 @@ namespace BizSim.Google.Play.Review
         public BizSimLogger.LogLevel LogLevel = BizSimLogger.LogLevel.Info;
 
         [Header("Editor / Development")]
-        [Tooltip("If true, builds with DEVELOPMENT_BUILD use MockProvider instead of the real JNI provider. Release builds always use real provider regardless.")]
+        [Tooltip("If true, Development Builds (Debug.isDebugBuild) use MockProvider instead of the real JNI provider. Release builds always use real provider regardless.")]
         public bool UseMockInDevelopmentBuild = false;
 
         [Header("Analytics")]

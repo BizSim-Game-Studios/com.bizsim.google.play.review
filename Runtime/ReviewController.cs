@@ -115,14 +115,12 @@ namespace BizSim.Google.Play.Review
             _coolDown = new ReviewCoolDownLogic(intervalDays);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-  #if DEVELOPMENT_BUILD
-            if (_settings != null && _settings.UseMockInDevelopmentBuild)
+            if (Debug.isDebugBuild && _settings != null && _settings.UseMockInDevelopmentBuild)
             {
                 _provider = new MockReviewProvider(_mockConfig, _coolDown);
                 BizSimLogger.Info("Development build: using MockReviewProvider per ReviewSettings.UseMockInDevelopmentBuild");
             }
             else
-  #endif
             {
                 _provider = new AndroidReviewProvider(_coolDown, defaultTimeout);
             }
@@ -481,17 +479,17 @@ namespace BizSim.Google.Play.Review
         public bool WriteDiagnosticSnapshot(string path)
         {
             EnsureMainThread();
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            if (!Debug.isDebugBuild)
+            {
+                BizSimLogger.Warning("WriteDiagnosticSnapshot disabled in release builds");
+                return false;
+            }
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(nameof(path));
             var snapshot = GetDiagnosticSnapshot();
             System.IO.File.WriteAllText(path, snapshot.ToJson());
             BizSimLogger.Info($"Diagnostic snapshot written to {path}");
             return true;
-#else
-            BizSimLogger.Warning("WriteDiagnosticSnapshot disabled in release builds");
-            return false;
-#endif
         }
 
         // QA escape hatch — NOT guarded by EnsureMainThread per Thread-safety contract.
