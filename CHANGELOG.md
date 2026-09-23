@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-09-23
+
+### Changed
+- The mock provider is chosen at runtime from `Debug.isDebugBuild` instead of a `DEVELOPMENT_BUILD`
+  compile guard (Unity 6.6 analyzer UAC0009). Release builds still never use it.
+
+### Fixed
+- `PackageVersion.Current` read `1.4.6` through 1.4.7 and 1.5.0; it matches `package.json` again.
+- The EditorTests assembly failed to compile (CS0122) against internal Editor members; the Editor
+  assembly now declares `InternalsVisibleTo` for it.
+
 ## [1.5.0] - 2026-08-08
 
 ### Changed
