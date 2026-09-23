@@ -51,7 +51,7 @@ namespace BizSim.Google.Play.Review
 
         [Tooltip("Internal watchdog timeout in seconds (3-60)")]
         [Range(3, 60)]
-        public int WatchdogTimeoutSeconds = 8;
+        public int WatchdogTimeoutSeconds = 40;
 
         [Tooltip("Skip review flow when device is offline")]
         public bool OfflineGuardEnabled = true;

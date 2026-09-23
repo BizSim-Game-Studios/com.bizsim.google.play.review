@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PackageVersion.Current` read `1.4.6` through 1.4.7 and 1.5.0; it matches `package.json` again.
 - The EditorTests assembly failed to compile (CS0122) against internal Editor members; the Editor
   assembly now declares `InternalsVisibleTo` for it.
+- **The shipped timeout defaults were inverted, so the package warned against its own factory
+  configuration.** `WatchdogTimeoutSeconds` defaulted to 8s against a 30s `DefaultTimeoutSeconds`, and
+  `ReviewBuildValidator` flags `Watchdog < DefaultTimeout`. The watchdog wraps the whole flow, including
+  the time the review card is on screen, so 8s could cancel a player mid-rating. The field default and
+  the no-Settings fallback are now 40s. Existing `ReviewSettings.asset` files keep their value and must
+  be edited (the same caveat as appupdate 1.4.5).
 
 ## [1.5.0] - 2026-08-08
 

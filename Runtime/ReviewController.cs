@@ -278,7 +278,7 @@ namespace BizSim.Google.Play.Review
             catch (Exception ex) { BizSimLogger.Warning($"V2 analytics adapter threw on OnReviewRequested: {ex.Message}"); }
 
             // Enterprise Wave 1: watchdog timeout
-            int watchdogMs = (_settings != null ? _settings.WatchdogTimeoutSeconds : 8) * 1000;
+            int watchdogMs = (_settings != null ? _settings.WatchdogTimeoutSeconds : 40) * 1000;
             using var watchdogCts = new CancellationTokenSource(watchdogMs);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, watchdogCts.Token);
 
