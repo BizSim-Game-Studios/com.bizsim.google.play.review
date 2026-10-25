@@ -2,8 +2,8 @@ namespace BizSim.Google.Play.Review
 {
     internal static class PackageVersion
     {
-        public const string Current         = "1.5.1";
-        public const string ReleaseDate     = "2026-08-07";
+        public const string Current         = "1.6.0";
+        public const string ReleaseDate     = "2026-10-25";
 
         // === Canonical K8 fields (Plan G) ===
         public const string NativeSdkVersion       = "2.0.2";
