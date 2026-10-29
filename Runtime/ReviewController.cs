@@ -96,6 +96,8 @@ namespace BizSim.Google.Play.Review
         public event Action<ReviewError>  OnError;
 
         public bool IsRequestInFlight => _inFlight;
+        /// <summary>False when the player has no Play Store review API (iOS, standalone, WebGL).</summary>
+        public bool IsSupported => _provider != null && _provider.IsSupported;
         public DateTime? LastPromptTimeUtc => _coolDown?.LastPromptTimeUtc;
         public bool CanRequestReview() { EnsureMainThread(); return _coolDown?.CanRequestReview() ?? false; }
         public TimeSpan CooldownRemaining() { EnsureMainThread(); return _coolDown?.Remaining() ?? TimeSpan.Zero; }
@@ -124,8 +126,11 @@ namespace BizSim.Google.Play.Review
             {
                 _provider = new AndroidReviewProvider(_coolDown, defaultTimeout);
             }
-#else
+#elif UNITY_EDITOR
             _provider = new MockReviewProvider(_mockConfig, _coolDown);
+#else
+            // iOS, standalone, WebGL: no Play Store review API and no mock in a player.
+            _provider = new UnsupportedReviewProvider();
 #endif
 
             _provider.OnReviewFlowCompleted += HandleCompleted;

@@ -20,6 +20,9 @@ namespace BizSim.Google.Play.Review
     /// </remarks>
     public interface IReviewProvider
     {
+        /// <summary>False on players with no Play Store review API (iOS, standalone, WebGL): requests fail with PlayStoreNotFound.</summary>
+        bool IsSupported => true;
+
         event Action<ReviewResult> OnReviewFlowCompleted;
         event Action<ReviewError>  OnError;
 
